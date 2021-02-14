@@ -1,0 +1,39 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Pre-checks
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+      owner: root
+      group: root
+    with_items:
+      - /opt/scripts
+  - name: Copy needed files
+    copy:
+      src: /opt/scripts/kernel_check.sh
+      dest: /opt/scripts
+      mode: 0700
+  - name: Sub mgr refresh
+    shell: subscription-manager refresh ; sleep 2
+  - name: Yum clean all
+    shell: yum clean all ; sleep 2
+  - name: Update/patch all available packages
+    yum:
+      name: '*'
+      state: latest
+  - name: Cleanup outstanding yum transactions
+    shell: yum-complete-transaction
+    register: result
+    until: result.stdout.find("No unfinished transactions left.") != -1
+    retries: 5
+    delay: 10
+  - name: Check for kernel issues
+    shell: /opt/scripts/kernel_check.sh
+    register: result
+    failed_when:
+      - result.rc != 0
+  - debug: var=result.stdout_lines

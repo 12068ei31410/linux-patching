@@ -1,0 +1,9 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Reading Files
+    shell: rpm -qa --last | head -10 ; uptime
+    register: stuff
+  - debug: var=stuff.stdout_lines

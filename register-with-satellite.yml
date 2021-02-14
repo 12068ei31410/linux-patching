@@ -1,0 +1,44 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Create/Ensure Dir structure
+    file:
+      path: /home/ansible
+      state: directory
+      mode: '0700'
+      owner: root
+      group: root
+  - name: Pull down katello-ca
+    shell: curl --insecure --output katello-ca-consumer-latest.noarch.rpm https://satellite.example.com/pub/katello-ca-consumer-latest.noarch.rpm
+      dest: /home/ansible/katello-ca-consumer-latest.noarch.rpm
+  - name: Install katello-ca
+    yum:
+      name: /home/ansible/katello-ca-consumer-latest.noarch.rpm
+      state: present
+      disable_gpg_check: yes
+  - name: Register to satellite
+    redhat_subscription:
+      state: present
+      activationkey: "Example_Org"
+      org_id: "Example_Org"
+      auto_attach: true
+  - name: Enable repos required to install katello on RHEL6
+    rhsm_repository:
+      name: ['rhel-6-server-satellite-tools-6.7-rpms', 'Example_EPEL_Red_Hat_Enterprise_Linux_6_EPEL', 'rhel-6-server-rpms']
+      purge: True
+    when:
+      - ansible_facts['distribution']  == "RedHat" or ansible_facts['distribution']  == "CentOS"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Enable repos required to install katello on RHEL7
+    rhsm_repository:
+      name: ['rhel-7-server-satellite-tools-6.7-rpms', 'Example_EPEL_Red_Hat_Enterprise_Linux_7_EPEL', 'rhel-7-server-rpms']
+      purge: True
+    when:
+      - ansible_facts['distribution']  == "RedHat" or ansible_facts['distribution']  == "CentOS"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Install katello-agent
+    yum:
+      name: ['katello-agent', 'katello-host-tools']
+      state: present
