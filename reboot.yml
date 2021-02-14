@@ -1,0 +1,18 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Rebooting ...
+    command: shutdown -r now "Weekly maintenace...Rebooting."
+    async: 1
+    poll: 0
+    ignore_errors: true
+    register: rebooting
+
+  - name: Wait for system to start
+    wait_for_connection:
+      connect_timeout: 59
+      sleep: 15
+      delay: 60
+    when: rebooting is changed
